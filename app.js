@@ -10,6 +10,7 @@ import {
 } from 'discord-interactions';
 import { getRandomEmoji, DiscordRequest } from './utils.js';
 import { getShuffledOptions, getResult } from './game.js';
+import { createTodo } from './notion.js';
 
 // Create an express app
 const app = express();
@@ -56,6 +57,45 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
           ]
         },
       });
+    }
+
+    // "todo" command — creates a Notion to-do
+    if (name === 'todo') {
+      const taskText = data.options.find(opt => opt.name === 'task').value;
+      const username = req.body.member?.user?.username
+        ?? req.body.user?.username
+        ?? 'Unknown';
+
+      try {
+        await createTodo(taskText, username);
+
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            flags: InteractionResponseFlags.IS_COMPONENTS_V2,
+            components: [
+              {
+                type: MessageComponentTypes.TEXT_DISPLAY,
+                content: `✅ Added to Notion: **${taskText}**`,
+              },
+            ],
+          },
+        });
+      } catch (error) {
+        console.error('Notion API error:', error);
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            flags: InteractionResponseFlags.IS_COMPONENTS_V2,
+            components: [
+              {
+                type: MessageComponentTypes.TEXT_DISPLAY,
+                content: '❌ Failed to add to-do to Notion. Check server logs.',
+              },
+            ],
+          },
+        });
+      }
     }
 
     console.error(`unknown command: ${name}`);
