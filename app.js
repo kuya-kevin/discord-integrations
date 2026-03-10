@@ -9,16 +9,12 @@ import {
   verifyKeyMiddleware,
 } from 'discord-interactions';
 import { getRandomEmoji, DiscordRequest } from './utils.js';
-import { getShuffledOptions, getResult } from './game.js';
 import { createTodo } from './notion.js';
 
 // Create an express app
 const app = express();
 // Get port, or default to 3000
 const PORT = process.env.PORT || 3000;
-// To keep track of our active games
-const activeGames = {};
-
 /**
  * Interactions endpoint URL where Discord will send HTTP requests
  * Parse request body and verifies incoming requests using discord-interactions package
@@ -65,37 +61,43 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
       const username = req.body.member?.user?.username
         ?? req.body.user?.username
         ?? 'Unknown';
+      const token = req.body.token;
 
-      try {
-        await createTodo(taskText, username);
+      // Immediately acknowledge to satisfy Discord's 3-second response deadline
+      res.send({ type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE });
 
-        return res.send({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            flags: InteractionResponseFlags.IS_COMPONENTS_V2,
-            components: [
-              {
-                type: MessageComponentTypes.TEXT_DISPLAY,
-                content: `✅ Added to Notion: **${taskText}**`,
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Notion request timed out')), 10_000)
+      );
+
+      Promise.race([createTodo(taskText, username), timeout])
+        .then(() => {
+          return DiscordRequest(
+            `/webhooks/${process.env.APP_ID}/${token}/messages/@original`,
+            {
+              method: 'PATCH',
+              body: {
+                flags: InteractionResponseFlags.IS_COMPONENTS_V2,
+                components: [{ type: MessageComponentTypes.TEXT_DISPLAY, content: `✅ Added to Notion: **${taskText}**` }],
               },
-            ],
-          },
-        });
-      } catch (error) {
-        console.error('Notion API error:', error);
-        return res.send({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            flags: InteractionResponseFlags.IS_COMPONENTS_V2,
-            components: [
-              {
-                type: MessageComponentTypes.TEXT_DISPLAY,
-                content: '❌ Failed to add to-do to Notion. Check server logs.',
+            }
+          );
+        })
+        .catch((error) => {
+          console.error('Notion API error:', error);
+          return DiscordRequest(
+            `/webhooks/${process.env.APP_ID}/${token}/messages/@original`,
+            {
+              method: 'PATCH',
+              body: {
+                flags: InteractionResponseFlags.IS_COMPONENTS_V2,
+                components: [{ type: MessageComponentTypes.TEXT_DISPLAY, content: '❌ Failed to add to-do to Notion. Check server logs.' }],
               },
-            ],
-          },
+            }
+          );
         });
-      }
+
+      return;
     }
 
     console.error(`unknown command: ${name}`);

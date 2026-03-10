@@ -1,8 +1,6 @@
-# Getting Started app for Discord
+# Discord Notion To-Do Bot
 
-This project contains a basic rock-paper-scissors-style Discord app written in JavaScript, built for the [getting started guide](https://discord.com/developers/docs/getting-started).
-
-![Demo of app](https://github.com/discord/discord-example-app/raw/main/assets/getting-started-demo.gif?raw=true)
+This project is a Discord app that lets you add to-do items to a Notion database via a slash command (`/todo`).
 
 ## Project structure
 Below is a basic overview of the project structure:
@@ -16,8 +14,8 @@ Below is a basic overview of the project structure:
 │   ├── selectMenu.js
 ├── .env.sample -> sample .env file
 ├── app.js      -> main entrypoint for app
-├── commands.js -> slash command payloads + helpers
-├── game.js     -> logic specific to RPS
+├── commands.js -> slash command definitions
+├── notion.js   -> Notion API integration
 ├── utils.js    -> utility functions and enums
 ├── package.json
 ├── README.md
@@ -47,11 +45,13 @@ npm install
 ```
 ### Get app credentials
 
-Fetch the credentials from your app's settings and add them to a `.env` file (see `.env.sample` for an example). You'll need your app ID (`APP_ID`), bot token (`DISCORD_TOKEN`), and public key (`PUBLIC_KEY`).
+Add the following to a `.env` file (see `.env.sample` for an example):
 
-Fetching credentials is covered in detail in the [getting started guide](https://discord.com/developers/docs/getting-started).
-
-> 🔑 Environment variables can be added to the `.env` file in Glitch or when developing locally, and in the Secrets tab in Replit (the lock icon on the left).
+- `APP_ID` — your Discord app ID
+- `DISCORD_TOKEN` — your bot token
+- `PUBLIC_KEY` — your app's public key
+- `NOTION_TOKEN` — your Notion integration token
+- `NOTION_DATABASE_ID` — the ID of the Notion database to write to-dos into
 
 ### Install slash commands
 
@@ -70,8 +70,6 @@ node app.js
 ```
 
 > ⚙️ A package [like `nodemon`](https://github.com/remy/nodemon), which watches for local changes and restarts your app, may be helpful while locally developing.
-
-If you aren't following the [getting started guide](https://discord.com/developers/docs/getting-started), you can move the contents of `examples/app.js` (the finished `app.js` file) to the top-level `app.js`.
 
 ### Set up interactivity
 
@@ -102,7 +100,5 @@ On the **General Information** tab, there will be an **Interactions Endpoint URL
 Click **Save Changes**, and your app should be ready to run 🚀
 
 ## Other resources
-- Read **[the documentation](https://discord.com/developers/docs/intro)** for in-depth information about API features.
-- Browse the `examples/` folder in this project for smaller, feature-specific code examples
-- Join the **[Discord Developers server](https://discord.gg/discord-developers)** to ask questions about the API, attend events hosted by the Discord API team, and interact with other devs.
-- Check out **[community resources](https://discord.com/developers/docs/topics/community-resources#community-resources)** for language-specific tools maintained by community members.
+- **[Discord Interactions docs](https://discord.com/developers/docs/interactions/receiving-and-responding)**
+- **[Notion API docs](https://developers.notion.com/)**
